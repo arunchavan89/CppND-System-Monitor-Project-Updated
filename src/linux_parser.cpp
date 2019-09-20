@@ -1,6 +1,7 @@
 #include "linux_parser.h"
 #include <dirent.h>
 #include <unistd.h>
+#include <iomanip>  // std::setprecision
 #include <iostream>
 #include <string>
 #include <vector>
@@ -75,6 +76,7 @@ float LinuxParser::MemoryUtilization() {
   float total_memory = 0.0f;
   float free_memory = 0.0f;
   float total_memory_used = 0.0f;
+  float total_memory_used_percent = 0.0f;
 
   // Read file from /proc/meminfo
   std::ifstream file_for_memoryinfo(kProcDirectory + kMeminfoFilename);
@@ -96,8 +98,8 @@ float LinuxParser::MemoryUtilization() {
   // https://stackoverflow.com/questions/41224738/how-to-calculate-system-memory-usage-from-proc-meminfo-like-htop/41251290#41251290
   // Total used memory = MemTotal - MemFree
   total_memory_used = total_memory - free_memory;
-
-  return total_memory_used;
+  total_memory_used_percent = (total_memory_used / total_memory);
+  return total_memory_used_percent;
 }
 
 // DONE: Read and return the system uptime
@@ -119,21 +121,23 @@ long int LinuxParser::UpTime() {
   return uptime;
 }
 
-// TODO: Read and return the number of jiffies for the system
+/*
+// NOT NEEDED: Read and return the number of jiffies for the system
 long LinuxParser::Jiffies() { return 0; }
 
-// TODO: Read and return the number of active jiffies for a PID
+// NOT NEEDED: Read and return the number of active jiffies for a PID
 // REMOVE: [[maybe_unused]] once you define the function
 long LinuxParser::ActiveJiffies(int pid[[maybe_unused]]) { return 0; }
 
-// TODO: Read and return the number of active jiffies for the system
+// NOT NEEDED: Read and return the number of active jiffies for the system
 long LinuxParser::ActiveJiffies() { return 0; }
 
-// TODO: Read and return the number of idle jiffies for the system
+// NOT NEEDED: Read and return the number of idle jiffies for the system
 long LinuxParser::IdleJiffies() { return 0; }
 
-// TODO: Read and return CPU utilization
+// NOT NEEDED: Read and return CPU utilization
 vector<string> LinuxParser::CpuUtilization() { return {}; }
+*/
 
 // DONE: Read and return the total number of processes
 int LinuxParser::TotalProcesses() {
@@ -175,22 +179,102 @@ int LinuxParser::RunningProcesses() {
   return num_processes;
 }
 
-// TODO: Read and return the command associated with a process
-// REMOVE: [[maybe_unused]] once you define the function
-string LinuxParser::Command(int pid[[maybe_unused]]) { return string(); }
+// DONE: Read and return the command associated with a process
+string LinuxParser::Command(int pid) {
+  std::string line;
+  std::ifstream file_for_command(LinuxParser::kProcDirectory +
+                                 std::to_string(pid) +
+                                 LinuxParser::kCmdlineFilename);
+  if (file_for_command.is_open()) {
+    std::getline(file_for_command, line);
+    return line;
+  }
+  return line;
+}
 
-// TODO: Read and return the memory used by a process
-// REMOVE: [[maybe_unused]] once you define the function
-string LinuxParser::Ram(int pid) { return string(); }
+// DONE: Read and return the memory used by a process
+string LinuxParser::Ram(int pid) {
+  std::string line, key, value;
+  std::ifstream file_for_ram(LinuxParser::kProcDirectory + std::to_string(pid) +
+                             LinuxParser::kStatusFilename);
+  if (file_for_ram.is_open()) {
+    while (std::getline(file_for_ram, line)) {
+      std::istringstream linestream(line);
+      linestream >> key >> value;
+      if (key == "VmSize:") {
+        float vm_size_mb = std::stof(value);
+        vm_size_mb = vm_size_mb / 1000.0f;
+        value = std::to_string(vm_size_mb);
+        return value;
+      }
+    }
+  }
+  return value;
+}
 
-// TODO: Read and return the user ID associated with a process
-// REMOVE: [[maybe_unused]] once you define the function
-string LinuxParser::Uid(int pid[[maybe_unused]]) { return string(); }
+// DONE: Read and return the user ID associated with a process
+string LinuxParser::Uid(std::string uid) {
+  std::string line, key, value, uid_found;
+  std::ifstream file_for_uid(LinuxParser::kPasswordPath);
+  if (file_for_uid.is_open()) {
+    while (std::getline(file_for_uid, line)) {
+      std::istringstream linestream(line);
+      linestream >> key;
+      std::stringstream ss(key);
+      for (int i = 0; i < 3; i++) {
+        std::getline(ss, value, ':');
+        if (value == uid) {
+          std::stringstream ss1(key);
+          std::getline(ss1, uid_found, ':');
+          return uid_found;
+        }
+      }
+    }
+  }
+  return uid_found;
+}
 
-// TODO: Read and return the user associated with a process
-// REMOVE: [[maybe_unused]] once you define the function
-string LinuxParser::User(int pid) { return string(); }
+// DONE: Read and return the user associated with a process
+string LinuxParser::User(int pid) {
+  std::string line, key, value, pid_to_uid;
+  std::ifstream file_for_user_info(LinuxParser::kProcDirectory +
+                                   std::to_string(pid) +
+                                   LinuxParser::kStatusFilename);
+  if (file_for_user_info.is_open()) {
+    while (std::getline(file_for_user_info, line)) {
+      std::istringstream linestream(line);
+      linestream >> key >> value;
+      if (key == "Uid:") {
+        pid_to_uid = Uid(value);
+        return pid_to_uid;
+      }
+    }
+  }
+  return pid_to_uid;
+}
 
-// TODO: Read and return the uptime of a process
-// REMOVE: [[maybe_unused]] once you define the function
-long LinuxParser::UpTime(int pid[[maybe_unused]]) { return 0; }
+// DONE: Read and return the uptime of a process
+long LinuxParser::UpTime(int pid) {
+  std::string line, value;
+  int count = 0;
+  long int up_time;
+  std::ifstream file_for_up_time(LinuxParser::kProcDirectory +
+                                 std::to_string(pid) +
+                                 LinuxParser::kStatFilename);
+  if (file_for_up_time.is_open()) {
+    while (std::getline(file_for_up_time, line)) {
+      std::istringstream linestream(line);
+      while (linestream >> value) {
+        count++;
+        /*get 22th value in /proc/pid/stat
+         * http://man7.org/linux/man-pages/man5/proc.5.html */
+        if (count == 22) {
+          up_time = std::stol(value);
+          // std::cout << "value = "<< value;
+          up_time = up_time / sysconf(_SC_CLK_TCK);
+        }
+      }
+    }
+  }
+  return up_time;
+}

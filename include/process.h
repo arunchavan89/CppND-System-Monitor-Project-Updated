@@ -9,14 +9,14 @@ It contains relevant attributes as shown below
 class Process {
  public:
   // Add a constructor to initialize the private member m_pid
-  Process(int pid) : m_pid(pid) {}
+  Process(int pid) : m_pid(pid) {}         // DONE: change 8523 to pid
   int Pid();                               // DONE: See src/process.cpp
   std::string User();                      // DONE: See src/process.cpp
   std::string Command();                   // DONE: See src/process.cpp
   float CpuUtilization();                  // DONE: See src/process.cpp
   std::string Ram();                       // DONE: See src/process.cpp
   long int UpTime();                       // DONE: See src/process.cpp
-  bool operator<(Process const& a) const;  // TODO: See src/process.cpp
+  //bool operator<(Process const& a) const;  // Not Needed: See src/process.cpp
 
   // DONE: Declare any necessary private members
  private:

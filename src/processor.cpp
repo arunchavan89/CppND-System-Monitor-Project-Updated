@@ -28,7 +28,7 @@ float Processor::Utilization() {
     std::istringstream linestream(line);
     while (linestream >> value) {
       if (count == 1) {
-        m_user = std::stof(value);        
+        m_user = std::stof(value);
       }
 
       if (count == 2) {
@@ -62,11 +62,13 @@ float Processor::Utilization() {
       count++;
     }
 
-    total_cpu_time_since_boot = m_user + m_nice + m_system + m_idle + m_iowait +  m_irq + m_softirq + m_steal;
+    total_cpu_time_since_boot = m_user + m_nice + m_system + m_idle + m_iowait +
+                                m_irq + m_softirq + m_steal;
     total_cpu_idel_time_since_boot = m_idle + m_iowait;
-    total_cpu_usage_time_since_boot = total_cpu_time_since_boot - total_cpu_idel_time_since_boot;
-    total_cpu_percentage = (total_cpu_usage_time_since_boot / total_cpu_time_since_boot)*100.0f;
+    total_cpu_usage_time_since_boot =
+        total_cpu_time_since_boot - total_cpu_idel_time_since_boot;
+    total_cpu_percentage =
+        (total_cpu_usage_time_since_boot / total_cpu_time_since_boot);
   }
-
   return total_cpu_percentage;
 }
